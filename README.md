@@ -1,5 +1,6 @@
 This repository contains the XML Schema of the Chemical Subgraphs & Reactions Mark-up Language (CSRML).
-This is *not* the primary source of this schema, but just here for convenience and discussion.
+This is *not* the primary source of this schema, but just here for convenience. Discussion should take
+place upstream, at the https://chemotyper.org/ website.
 
 The CSRML schema was developed by [Molecular Networks GmbH](http://www.molecular-networks.com/) and made available on https://chemotyper.org/:
 
