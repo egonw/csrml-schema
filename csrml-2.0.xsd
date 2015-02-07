@@ -1,0 +1,3335 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--
+	Chemical Subgraphs and Reactions Mark-up Language version 2.0 definitions
+	CSRML 2.0 schema represents subgraph rules, molecules, reaction types,
+	reaction rules, and reaction instances, as well as introduces several 
+	other novelties.
+	For the complete list of features look up the CSRML v.2.0 documentation.
+
+	Author			: <a href="mailto:info@molecular-networks.com">Molecular Networks GmbH</a>
+	Last changed by	: $Author: alexei $
+	Author			: Bruno Bienfait
+	Author			: Lothar Terfloth
+	Author			: Thomas Kleinoeder
+	Author			: Joerg Marusczyk
+	Author			: Aleksey Tarkhov
+	Version			: $Id: csrml-2.0.xsd 307 2013-11-20 07:42:35Z alexei $
+
+	Note that CSRML 2.0 target namespace has been changed - the version suffix has been
+	removed to ease maintaining the backward compatibility for the future modifications.
+-->
+<xsd:schema version="2.0" attributeFormDefault="unqualified" elementFormDefault="qualified"
+	targetNamespace="http://www.molecular-networks.com/schema/csrml"
+	xmlns:csrml="http://www.molecular-networks.com/schema/csrml"
+	xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+	<xsd:annotation>
+		<xsd:documentation xml:lang="en">
+			Chemical Subgraphs and Reactions Mark-up Language version 2.0.
+			Provides representations of chemical molecules, reactions,
+			subgraph rules, and reaction rules.
+			Copyright (c) 2008, 2013, Molecular Networks GmbH.
+			Please retain this indication in all the copies of the document.
+		</xsd:documentation>
+	</xsd:annotation>
+	<!-- ################################################################### -->
+	<xsd:annotation>
+		<xsd:documentation xml:lang="en">
+			Isolated reference elements below are declared to enforce key and
+			reference integrity rules. They're not meant to be used in an XML
+			document on their own, but are just referenced by the XML types
+			in this schema.
+		</xsd:documentation>
+	</xsd:annotation>
+	<!-- root of the CSRML document -->
+	<xsd:element name="csrml" type="csrml:CSRMLType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Root of a CSRML document. The CSRML
+			documents can contain collections of CSRML subgraph rules, feature
+			annotations, reaction, molecules, or reaction rules. It provides a
+			self-containing container which can be easily transferred elsewhere.
+			</xsd:documentation>
+		</xsd:annotation>
+		<xsd:key name="subgraphIdIsUnique">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">
+					Each subgraph must have an unique ID within the document.
+				</xsd:documentation>
+			</xsd:annotation>
+			<xsd:selector xpath="./csrml:subgraph"/>
+			<xsd:field xpath="@id"/>
+		</xsd:key>
+		<xsd:key name="reactionRuleIdIsUnique">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">
+					Each reaction rule must have an unique ID within the document.
+				</xsd:documentation>
+			</xsd:annotation>
+			<xsd:selector xpath="./csrml:reaction-rule"/>
+			<xsd:field xpath="@id"/>
+		</xsd:key>
+		<xsd:key name="moleculeIdIsUnique">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">
+					Each molecule must have an unique ID within the document.
+				</xsd:documentation>
+			</xsd:annotation>
+			<xsd:selector xpath="./csrml:molecule"/>
+			<xsd:field xpath="@id"/>
+		</xsd:key>
+		<xsd:key name="reactionIdIsUnique">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">
+					Each reaction must have an unique ID within the document.
+				</xsd:documentation>
+			</xsd:annotation>
+			<xsd:selector xpath="./csrml:reaction"/>
+			<xsd:field xpath="@id"/>
+		</xsd:key>
+		<xsd:key name="topLevelClassIdIsUnique">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">
+					Each top level class in a class hierarchy must have
+					a unique ID.
+				</xsd:documentation>
+			</xsd:annotation>
+			<xsd:selector xpath="./csrml:classes"/>
+			<xsd:field xpath="@id"/>
+		</xsd:key>
+		<xsd:key name="propertyInfoNameIsUnique">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">Each property description entry
+				must be unique.</xsd:documentation>
+			</xsd:annotation>
+			<xsd:selector xpath=".//csrml:propertyInfo"/>
+			<xsd:field xpath="@name"/>
+		</xsd:key>
+		<xsd:keyref name="subgraphMustExistForChemicalClass" refer="csrml:subgraphIdIsUnique">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">A subgraph that is referenced
+				by some class must be present in the current document.</xsd:documentation>
+			</xsd:annotation>
+			<!-- .// selector selects all descendant(s) at any nesting level -->
+			<xsd:selector xpath=".//csrml:class"/>
+			<xsd:field xpath="@subgraph"/>
+		</xsd:keyref>
+		<xsd:keyref name="reactionRuleMustExistForChemicalClass" refer="csrml:reactionRuleIdIsUnique">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">A reaction rule that is referenced
+				by some class must be present in the current document.</xsd:documentation>
+			</xsd:annotation>
+			<!-- .// selector selects all descendant(s) at any nesting level -->
+			<xsd:selector xpath=".//csrml:class"/>
+			<xsd:field xpath="@reaction-rule"/>
+		</xsd:keyref>
+		<xsd:keyref name="propertyMustBeRegistered" refer="csrml:propertyInfoNameIsUnique">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">A property used on any level
+				must be registered in the property map</xsd:documentation>
+			</xsd:annotation>
+			<!--  any property element at any level -->
+			<xsd:selector xpath=".//csrml:property"/>
+			<xsd:field xpath="@name"/>
+		</xsd:keyref>
+		<xsd:keyref name="moleculeMustExistForMustMatchSubgraphReference" refer="csrml:moleculeIdIsUnique">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">
+					If a subgraph uses references for positive test cases, the
+					referred molecule(s) must exist in the document.
+				</xsd:documentation>
+			</xsd:annotation>
+			<xsd:selector xpath="./csrml:subgraph/csrml:mustMatch/csrml:molref"/>
+			<xsd:field xpath="@id"/>
+		</xsd:keyref>
+		<xsd:keyref name="moleculeMustExistForMustNotMatchSubgraphReference" refer="csrml:moleculeIdIsUnique">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">
+					If a subgraph uses references for negative test cases, the
+					referred molecule(s) must exist in the document.
+				</xsd:documentation>
+			</xsd:annotation>
+			<xsd:selector xpath="./csrml:subgraph/csrml:mustNotMatch/csrml:molref"/>
+			<xsd:field xpath="@id"/>
+		</xsd:keyref>
+		<xsd:keyref name="subgraphMustExistForRxnRuleReference" refer="csrml:subgraphIdIsUnique">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">
+					If a reaction rule uses subgraph references, the referred
+					subgraphs must exist in the document.
+				</xsd:documentation>
+			</xsd:annotation>
+			<xsd:selector xpath="./csrml:reaction-rule/csrml:component/csrml:subgraph"/>
+			<xsd:field xpath="@id"/>
+		</xsd:keyref>
+		<xsd:keyref name="reactionMustExistForRxnRuleRxnReference" refer="csrml:reactionIdIsUnique">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">
+					If a subgraph uses references for positive test cases, the
+					referred molecule(s) must exist in the document.
+				</xsd:documentation>
+			</xsd:annotation>
+			<xsd:selector xpath="./csrml:reaction-rule/csrml:example-reactions/csrml:rxnref"/>
+			<xsd:field xpath="@id"/>
+		</xsd:keyref>
+	</xsd:element>
+	<!-- Isolated subgraph element -->
+	<xsd:element name="subgraph" type="csrml:SubgraphType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">A single CSRML subgraph. Should not
+				be used to e.g. transfer the subgraphs elsewhere. Instead, it is
+				meant to be stored e.g. in a database of subgraphs. A CSRML parser
+				should be capable of parsing single subgraphs returning
+				corresponding CSRML subgraph objects which can be used for
+				substructure matching. Warning - the subgraphs can only be parsed
+				when all the annotations used by it are known in the current context.
+				Thus, the annotations should be loaded before an attempt
+				to parse the isolated subgraph is made.
+			</xsd:documentation>
+		</xsd:annotation>
+		<xsd:unique name="uniquePropertyForSubgraph">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">Each property assigned to a
+				subgraph must be unique.</xsd:documentation>
+			</xsd:annotation>
+			<xsd:selector xpath="./csrml:property"/>
+			<xsd:field xpath="@name"/>
+		</xsd:unique>
+		<xsd:key name="moleculeIdIsUniqueInSubgraph">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">
+					Each molecule element must have an unique ID within the
+					subgraph.
+				</xsd:documentation>
+			</xsd:annotation>
+			<xsd:selector xpath="./csrml:molecule"/>
+			<xsd:field xpath="@id"/>
+		</xsd:key>
+
+	</xsd:element>
+	<!-- Isolated reaction rule element -->
+	<xsd:element name="reaction-rule" type="csrml:ReactionRuleType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">A single CSRML reaction rule.
+				Should not be used to transfer reaction rules elsewhere, but is
+				meant to be stored in a database etc.
+				A CSRML parser should be capable of parsing such rules returning
+				corresponding CSRML subgraph objects which can be used for reaction
+				substructure matching. Warning - the subgraphs can only be parsed
+				when all the annotations used by it are known in the current context.
+				Thus, the annotations should be loaded before an attempt
+				to parse the isolated subgraph is made.
+			</xsd:documentation>
+		</xsd:annotation>
+		<xsd:key name="componentIdInReactionRuleIsUnique">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">Each reaction rule component
+				in a reaction rule must have a unique ID within the rule.</xsd:documentation>
+			</xsd:annotation>
+			<xsd:selector xpath="./csrml:component"/>
+			<xsd:field xpath="@id"/>
+		</xsd:key>
+		<xsd:unique name="uniquePropertyForReactionRule">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">Each property assigned to a
+				reaction rule must be unique.</xsd:documentation>
+			</xsd:annotation>
+			<xsd:selector xpath="./csrml:property"/>
+			<xsd:field xpath="@name"/>
+		</xsd:unique>
+		<xsd:keyref name="referredComponentMustExistForTransformation" refer="csrml:componentIdInReactionRuleIsUnique">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">A reference rule component
+				referred by the transformation must exist.</xsd:documentation>
+			</xsd:annotation>
+			<xsd:selector xpath=".//csrml:transformations/csrml:*/csrml:target"/>
+			<xsd:field xpath="@component"/>
+		</xsd:keyref>
+		<xsd:unique name="transformationSequenceIsUnique">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">Transformations must have unique
+				serial numbers.</xsd:documentation>
+			</xsd:annotation>
+			<xsd:selector xpath=".//csrml:transformations/csrml:*"/>
+			<xsd:field xpath="@index"/>
+		</xsd:unique>
+	</xsd:element>
+	<!-- Isolated transformation to control uniqueness of atom references -->
+	<xsd:element name="transformation" type="csrml:TransformationType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Enforces uniqueness of single
+			targets enumerated within a single transformation.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:key name="transformationIdIsUnique">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">A constraint to enforce
+				uniqueness of IDs of targets involved into a transformation.
+				</xsd:documentation>
+			</xsd:annotation>
+			<xsd:selector xpath="csrml:target"/>
+			<xsd:field xpath="@id"/>
+		</xsd:key>
+		<xsd:unique name="uniqueTargetsInTransformations">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">A constraint to enforce
+				uniqueness of IDs of targets involved into a transformation.
+				</xsd:documentation>
+			</xsd:annotation>
+			<xsd:selector xpath="csrml:target"/>
+			<xsd:field xpath="@component"/>
+			<xsd:field xpath="@destination"/>
+		</xsd:unique>
+	</xsd:element>
+	<!-- reference atom element to describe single atom -->
+	<xsd:element name="atom" type="csrml:AtomType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Reference atom element which is
+			used to enforce XSD constraints.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:unique name="uniquePropertyForAtom">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">Each property assigned to an
+				atom must be unique.</xsd:documentation>
+			</xsd:annotation>
+			<xsd:selector xpath="./csrml:property"/>
+			<xsd:field xpath="@name"/>
+		</xsd:unique>
+	</xsd:element>
+	<!-- reference bond element to describe a single bond -->
+	<xsd:element name="bond" type="csrml:BondType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Reference bond instance which is
+			used to enforce XSD constraints.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:unique name="uniqueAtomsInBond">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">A constraint to enforce
+				uniqueness of atom IDs of atoms connected by a bond</xsd:documentation>
+			</xsd:annotation>
+			<xsd:selector xpath="csrml:atom"/>
+			<xsd:field xpath="@id"/>
+		</xsd:unique>
+		<xsd:unique name="uniquePropertyForBond">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">Each property assigned to a
+				bond must be unique.</xsd:documentation>
+			</xsd:annotation>
+			<xsd:selector xpath="./csrml:property"/>
+			<xsd:field xpath="@name"/>
+		</xsd:unique>
+	</xsd:element>
+	<!-- reference electron system element to describe a single bond -->
+	<xsd:element name="elSys" type="csrml:ElectronSystemType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Reference electron system instance
+			which is used to enforce XSD constraints.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:unique name="uniqueAtomsInElSys">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">A constraint to enforce
+				uniqueness of atom IDs of atoms in an electron system.</xsd:documentation>
+			</xsd:annotation>
+			<xsd:selector xpath="csrml:atom"/>
+			<xsd:field xpath="@id"/>
+		</xsd:unique>
+		<xsd:unique name="uniquePropertyForElSys">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">Each property assigned to a
+				electron system must be unique.</xsd:documentation>
+			</xsd:annotation>
+			<xsd:selector xpath="./csrml:property"/>
+			<xsd:field xpath="@name"/>
+		</xsd:unique>
+	</xsd:element>
+	<!-- reference element to describe a molecule -->
+	<xsd:element name="molecule" type="csrml:ChemicalStructureType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Reference compound/molecule/substructure
+			instance. Used to enforce XSD constraints.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:key name="uniqueAtomIdPerMolecule">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">A constraint to enforce
+				uniqueness of atom IDs per molecule</xsd:documentation>
+			</xsd:annotation>
+			<xsd:selector xpath=".//csrml:atoms/csrml:atom"/>
+			<xsd:field xpath="@id"/>
+		</xsd:key>
+		<xsd:key name="uniqueBondIdPerMolecule">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">A constraint to enforce
+				uniqueness of bond IDs per molecule</xsd:documentation>
+			</xsd:annotation>
+			<xsd:selector xpath=".//csrml:bonds/csrml:bond"/>
+			<xsd:field xpath="@id"/>
+		</xsd:key>
+		<xsd:key name="uniqueElSysIdPerMolecule">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">A constraint to enforce
+				uniqueness of electron system IDs per molecule</xsd:documentation>
+			</xsd:annotation>
+			<xsd:selector xpath=".//csrml:elSystems/csrml:elSys"/>
+			<xsd:field xpath="@id"/>
+		</xsd:key>
+		<xsd:keyref name="atomMustExistForBond" refer="csrml:uniqueAtomIdPerMolecule">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">Any atom which is a part of
+				a bond must be present in the current compound</xsd:documentation>
+			</xsd:annotation>
+			<xsd:selector xpath=".//csrml:bonds/csrml:bond/csrml:atom"/>
+			<xsd:field xpath="@id"/>
+		</xsd:keyref>
+		<xsd:keyref name="atomMustExistForElSys" refer="csrml:uniqueAtomIdPerMolecule">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">Any atom which is a part of an
+				electron system must be present in the current compound</xsd:documentation>
+			</xsd:annotation>
+			<xsd:selector xpath=".//csrml:elSystems/csrml:elSys/csrml:atom"/>
+			<xsd:field xpath="@id"/>
+		</xsd:keyref>
+		<xsd:unique name="uniquePropertyForMolecule">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">Each property assigned to a
+				molecule must be unique.</xsd:documentation>
+			</xsd:annotation>
+			<xsd:selector xpath="./csrml:property"/>
+			<xsd:field xpath="@name"/>
+		</xsd:unique>
+	</xsd:element>
+	<!-- reference element to describe a molecule in a reaction component-->
+	<xsd:element name="component" type="csrml:ReactionComponentType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Reference compound/molecule/substructure
+			instance. Used to enforce XSD constraints.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:key name="uniqueAtomIdPerRxnComponent">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">A constraint to enforce
+				uniqueness of atom IDs per molecule</xsd:documentation>
+			</xsd:annotation>
+			<xsd:selector xpath=".//csrml:atoms/csrml:atom"/>
+			<xsd:field xpath="@id"/>
+		</xsd:key>
+		<xsd:key name="uniqueBondIdPerRxnComponent">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">A constraint to enforce
+				uniqueness of bond IDs per molecule</xsd:documentation>
+			</xsd:annotation>
+			<xsd:selector xpath=".//csrml:bonds/csrml:bond"/>
+			<xsd:field xpath="@id"/>
+		</xsd:key>
+		<xsd:key name="uniqueElSysIdPerRxnComponent">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">A constraint to enforce
+				uniqueness of electron system IDs per molecule</xsd:documentation>
+			</xsd:annotation>
+			<xsd:selector xpath=".//csrml:elSystems/csrml:elSys"/>
+			<xsd:field xpath="@id"/>
+		</xsd:key>
+		<xsd:keyref name="atomMustExistForBondInRxnComponent" refer="csrml:uniqueAtomIdPerRxnComponent">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">Any atom which is a part of
+				a bond must be present in the current compound</xsd:documentation>
+			</xsd:annotation>
+			<xsd:selector xpath=".//csrml:bonds/csrml:bond/csrml:atom"/>
+			<xsd:field xpath="@id"/>
+		</xsd:keyref>
+		<xsd:keyref name="atomMustExistForElSysInRxnComponent" refer="csrml:uniqueAtomIdPerRxnComponent">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">Any atom which is a part of an
+				electron system must be present in the current compound</xsd:documentation>
+			</xsd:annotation>
+			<xsd:selector xpath=".//csrml:elSystems/csrml:elSys/csrml:atom"/>
+			<xsd:field xpath="@id"/>
+		</xsd:keyref>
+		<xsd:keyref name="atomMustExistForAAMap" refer="csrml:uniqueAtomIdPerRxnComponent">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">Atoms referenced by the atom-atom
+				mapping must be defined within the component.</xsd:documentation>
+			</xsd:annotation>
+			<xsd:selector xpath=".//csrml:aaMap/csrml:map"/>
+			<xsd:field xpath="@atomId"/>
+		</xsd:keyref>
+		<xsd:unique name="atomHasExactlyOneAAMapping">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">Atoms referenced by the atom-atom
+				mapping must have not more than one mapping assigned.</xsd:documentation>
+			</xsd:annotation>
+			<xsd:selector xpath=".//csrml:aaMap/csrml:map"/>
+			<xsd:field xpath="@atomId"/>
+		</xsd:unique>
+		<xsd:unique name="uniquePropertyForRxnComponent">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">Each property assigned to a
+				molecule must be unique.</xsd:documentation>
+			</xsd:annotation>
+			<xsd:selector xpath="./csrml:property"/>
+			<xsd:field xpath="@name"/>
+		</xsd:unique>
+	</xsd:element>
+	<!-- reference reaction element -->
+	<xsd:element name="reaction" type="csrml:ReactionType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Reference reaction instance. Used
+			to enforce XSD constraints.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:key name="uniqueComponentIdPerReaction">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">A constraint to enforce
+				uniqueness of component IDs per reaction</xsd:documentation>
+			</xsd:annotation>
+			<xsd:selector xpath=".//csrml:reaction/csrml:component"/>
+			<xsd:field xpath="@id"/>
+		</xsd:key>
+		<xsd:unique name="uniquePropertyForReaction">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">Each property assigned to a
+				reaction must be unique.</xsd:documentation>
+			</xsd:annotation>
+			<xsd:selector xpath="./csrml:property"/>
+			<xsd:field xpath="@name"/>
+		</xsd:unique>
+	</xsd:element>
+	<!-- reference chemical classes root element -->
+	<xsd:element name="classes" type="csrml:ChemicalClassType">
+		<xsd:unique name="unqiueClassInClasses">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">
+					Classes within single hierarchy must have unique identifiers
+					even if they refer to the same subgraph query.
+				</xsd:documentation>
+			</xsd:annotation>
+			<xsd:selector xpath=".//csrml:class"/>
+			<xsd:field xpath="@id"/>
+		</xsd:unique>
+	</xsd:element>
+	<!-- reference chemical class element -->
+	<xsd:element name="class" type="csrml:ChemicalClassType">
+		<xsd:unique name="uniquePropertyForClass">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">Each property assigned to a
+				class must be unique.</xsd:documentation>
+			</xsd:annotation>
+			<xsd:selector xpath="./csrml:property"/>
+			<xsd:field xpath="@name"/>
+		</xsd:unique>
+	</xsd:element>
+	<!-- CSRML types definition -->
+	<xsd:complexType name="CSRMLType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Root element of any CSRML document</xsd:documentation>
+		</xsd:annotation>
+		<xsd:complexContent>
+			<xsd:extension base="csrml:DocumentedObjectType">
+				<xsd:sequence>
+					<xsd:element name="revision" minOccurs="0" maxOccurs="1">
+						<xsd:annotation>
+							<xsd:documentation xml:lang="en">Revision or version
+							number of the document. Use this field to trace
+							the versioning information of the document.</xsd:documentation>
+						</xsd:annotation>
+						<xsd:complexType>
+							<xsd:complexContent mixed="true">
+								<xsd:extension base="xsd:anyType" />
+							</xsd:complexContent>
+						</xsd:complexType>
+					</xsd:element>
+					<xsd:element name="timestamp" minOccurs="0" maxOccurs="1">
+						<xsd:annotation>
+							<xsd:documentation xml:lang="en">Timestamp information
+							of the document. Use this field to trace the versioning
+							information of the document, namely the changed date.</xsd:documentation>
+						</xsd:annotation>
+						<xsd:complexType>
+							<xsd:complexContent mixed="true">
+								<xsd:extension base="xsd:anyType" />
+							</xsd:complexContent>
+						</xsd:complexType>
+					</xsd:element>
+					<xsd:element name="author" minOccurs="0" maxOccurs="unbounded">
+						<xsd:annotation>
+							<xsd:documentation xml:lang="en">Authoring information
+							Use this field to trace the versioning information of
+							the document, namely the author(s).</xsd:documentation>
+						</xsd:annotation>
+						<xsd:complexType>
+							<xsd:complexContent mixed="true">
+								<xsd:extension base="xsd:anyType" />
+							</xsd:complexContent>
+						</xsd:complexType>
+					</xsd:element>
+					<xsd:element name="properties" minOccurs="0" maxOccurs="1" type="csrml:PropertyMapType">
+						<xsd:annotation>
+							<xsd:documentation xml:lang="en">Optional map of
+							properties used on the chemical objects in the current
+							document. If any properties need to be set on any
+							chemical objects, or classes, etc, they must be registered
+							in this map.</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+					<xsd:element name="features" minOccurs="0" maxOccurs="unbounded" type="csrml:AnnotationSequenceType">
+						<xsd:annotation>
+							<xsd:documentation xml:lang="en">Optional map
+							of annotations used in the subgraphs comprising
+							the current document.</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+					<xsd:element ref="csrml:classes" minOccurs="0" maxOccurs="unbounded">
+						<xsd:annotation>
+							<xsd:documentation xml:lang="en">Chemical classes hierarchy.
+							The optional section provides the placeholder for grouping
+							of related substructures/reaction rules into a hierarchy.</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+					<xsd:element ref="csrml:molecule" minOccurs="0" maxOccurs="unbounded">
+						<xsd:annotation>
+							<xsd:documentation xml:lang="en">Collection of CSRML molecules.
+							A CSRML document may contain a sequence of molecule instances
+							and can be used to transport the chemical structures only.</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+					<xsd:element ref="csrml:reaction" minOccurs="0" maxOccurs="unbounded">
+						<xsd:annotation>
+							<xsd:documentation xml:lang="en">Collection of CSRML reactions.
+							A CSRML document may contain a sequence of reaction instances
+							and can be used to transport the chemical reactions only.</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+					<xsd:element ref="csrml:subgraph" minOccurs="0" maxOccurs="unbounded">
+						<xsd:annotation>
+							<xsd:documentation xml:lang="en">Collection of
+							CSRML subgraphs.</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+					<xsd:element ref="csrml:reaction-rule" minOccurs="0" maxOccurs="unbounded">
+						<xsd:annotation>
+							<xsd:documentation xml:lang="en">Collection of
+							CSRML reaction rules.</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+				</xsd:sequence>
+				<xsd:attribute name="id" use="required" type="xsd:ID">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">Identifier of the
+						document. Assigns any appropriate ID to the document.</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+				<xsd:attribute name="csrmlVersion" use="optional" type="xsd:nonNegativeInteger" default="2">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">Identifier of the CSRML
+						version used in the document.</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+	<xsd:complexType name="PropertyInfoType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Definition of a property/descriptor
+			information which describes the property/descriptor used on molecules,
+			atoms, bonds, electron systems, subgraphs, reaction rules, or reactions.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:complexContent>
+			<xsd:extension base="csrml:DocumentedObjectType">
+				<xsd:sequence>
+					<xsd:element name="unit" minOccurs="0" maxOccurs="1">
+						<xsd:annotation>
+							<xsd:documentation xml:lang="en">Unit description,
+							if applicable. Free text, may include HTML as well.</xsd:documentation>
+						</xsd:annotation>
+						<xsd:complexType>
+							<xsd:complexContent mixed="true">
+								<xsd:extension base="xsd:anyType" />
+							</xsd:complexContent>
+						</xsd:complexType>
+					</xsd:element>
+				</xsd:sequence>
+				<xsd:attribute name="name" type="xsd:string" use="required">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">Name of a property/descriptor
+						as it would be used e.g. in an SD file (like M_WEIGHT). The
+						name of the property is used to refer to the property
+						info record from a property element associated to
+						an object.</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+				<xsd:attribute name="dataType" use="required" type="csrml:DataType">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">Data type of
+						property/descriptor values. May be boolean, integer,
+						double, or string.</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+				<xsd:attribute name="prototype" use="required" type="csrml:PropertyPrototypeList">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">Prototype of the
+						property value, e.g. scalar (single value), vector, or
+						matrix.</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+				<xsd:attribute name="domain" type="csrml:ChemicalDomainType" use="required">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">Applicability domain of
+						the property/descriptor. A descriptor, for example, can be
+						defined for an atom, bond, molecule, or reaction - that
+						will be its domain. The validity of the domain cannot be
+						checked by XSD constraints so the implementing application
+						must ensure the correct usage of the properties in their
+						domains.</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+	<xsd:complexType name="PropertyMapType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Dictionary of properties/descriptors
+			stored in a CSRML document on any chemical objects. Just lists the
+			set of property information items for each property stored in the
+			document.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:sequence>
+			<xsd:element name="propertyInfo" minOccurs="1" maxOccurs="unbounded" type="csrml:PropertyInfoType"/>
+		</xsd:sequence>
+	</xsd:complexType>
+	<xsd:complexType name="DocumentedObjectType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">An object that can have optional
+			label, title, comment and description subelements.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:sequence>
+			<xsd:element minOccurs="0" maxOccurs="1" name="label">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Optional label of the object.
+					A label might be used e.g. to assign a GUI label to an object
+					which is not necessarily the same as its title.</xsd:documentation>
+				</xsd:annotation>
+				<xsd:complexType>
+					<xsd:complexContent mixed="true">
+						<xsd:extension base="xsd:anyType" />
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element minOccurs="0" maxOccurs="1" name="title">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Optional title of the object.
+					A title might be used e.g. to assign a descriptive name to an
+					object</xsd:documentation>
+				</xsd:annotation>
+				<xsd:complexType>
+					<xsd:complexContent mixed="true">
+						<xsd:extension base="xsd:anyType" />
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element minOccurs="0" maxOccurs="1" name="comment">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Optional comments of the object.
+					Use the comments to e.g. explain how a rule is working, why
+					it is implemented so, etc.</xsd:documentation>
+				</xsd:annotation>
+				<xsd:complexType>
+					<xsd:complexContent mixed="true">
+						<xsd:extension base="xsd:anyType" />
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element minOccurs="0" maxOccurs="1" name="description">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Optional description of
+					the object. Use this to document the object, its features etc
+					as it would be reported in a printed documentation.</xsd:documentation>
+				</xsd:annotation>
+				<xsd:complexType>
+					<xsd:complexContent mixed="true">
+						<xsd:extension base="xsd:anyType" />
+					</xsd:complexContent>
+				</xsd:complexType>
+			</xsd:element>
+		</xsd:sequence>
+		<!--
+			Do not define the ID attribute in the DocumentedObject, otherwise
+			it enforces IDs on all derived objects, including property, matchIf
+			etc where it is NOT NEEDED
+		 -->
+	</xsd:complexType>
+	<xsd:complexType name="AnnotatedObjectType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">An object that can be annotated and
+			may have properties assigned. This base type is extended by atom,
+			bond, electron system, compound, reaction, subgraph, and reaction rule
+			in order to provide them with the ability of being annotated.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:complexContent>
+			<xsd:extension base="csrml:DocumentedObjectType">
+				<xsd:sequence>
+					<xsd:element minOccurs="0" maxOccurs="unbounded" name="matchIf" type="csrml:AnnotatedFeatureType">
+						<xsd:annotation>
+							<xsd:documentation xml:lang="en">Unlimited set of
+							(nested) annotations assigning the features necessary
+							to evaluate a match of the subgraph query, to test
+							if a match is possible.</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+					<xsd:element minOccurs="0" maxOccurs="unbounded" name="property" type="csrml:PropertyType">
+						<xsd:annotation>
+							<xsd:documentation xml:lang="en">Unlimited set of
+							properties/descriptors that can be assigned to any
+							annotated object.</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+				</xsd:sequence>
+				<xsd:attribute name="id" type="xsd:NMTOKEN" use="required">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">Unique ID of an annotated
+						object, ie atom, bond, electron system, or molecule. This
+						ID is for reference purposes only. Must be unique in the
+						scope of a single molecule only.</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+	<xsd:complexType name="AtomType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">
+				Single atom definition
+			</xsd:documentation>
+		</xsd:annotation>
+		<xsd:complexContent>
+			<xsd:extension base="csrml:AnnotatedObjectType">
+				<xsd:attribute name="element" type="csrml:AtomTypeList"
+					default="QRY" use="optional">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">
+							Atom type, i.e. chemical element or a
+							wildcard atom reference
+						</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+				<xsd:attribute name="x" type="xsd:double" use="optional"
+					default="0.0">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">
+							X coordinate of an atom - either 2D or 3D.
+							It is optional since for a query the
+							coordinates are not important. It is only
+							assigned and used to depict the structure.
+							If the Z coordinate is present, the
+							coordinates MUST be 3D!
+						</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+				<xsd:attribute name="y" type="xsd:double" use="optional"
+					default="0.0">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">
+							Y coordinate of an atom - either 2D or 3D.
+							It is optional since for a query the
+							coordinates are not important. It is only
+							assigned and used to depict the structure.
+							If the Z coordinate is present, the
+							coordinates MUST be 3D!
+						</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+				<xsd:attribute name="z" type="xsd:double" use="optional"
+					default="0.0">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">
+							Z coordinate of an atom, 3D, if present. It
+							is optional since for a query the
+							coordinates are not important. It is only
+							assigned and used to depict the structure.
+							If the Z coordinate is present, the
+							coordinates MUST be 3D!
+						</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+				<xsd:attribute name="formalCharge" type="xsd:integer"
+					default="0" use="optional">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">
+							Formal charge of the atom, default is 0. It
+							is only used to depict the formal charge, if
+							any, but not used to evaluate if a query
+							matches.
+						</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+				<xsd:attribute name="isotope" type="xsd:integer"
+					default="0" use="optional">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">
+							Number of an isotope of the element being
+							assigned. If not used, the main isotope of
+							an element is assumed, otherwise, must
+							indicate the nuclide number of a specific
+							isotope.
+						</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+				<xsd:attribute name="radical" type="csrml:RadicalTypeList" default="closed" use="optional">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">
+							Radical state of the atom, if any. Default
+							is "closed" and may be omitted.
+						</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+				<xsd:attribute name="stereo" type="csrml:AtomStereoListType" use="optional">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">The stereo
+						configuration of the atom. This attribute only stores
+						the configuration data, it is not used for querying it.
+						</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+	<xsd:complexType name="AtomReferenceType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Reference to an existing atom, e.g.
+			in bonds or electron systems</xsd:documentation>
+		</xsd:annotation>
+		<xsd:attribute name="id" type="xsd:NMTOKEN" use="required">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">Reference to an atom which takes
+				part in a bond or electron system. An atom MUST be present within
+				the current molecule/structure/substructure.</xsd:documentation>
+			</xsd:annotation>
+		</xsd:attribute>
+		<xsd:attribute name="npe" type="xsd:unsignedInt" use="optional" default="0">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">Count of pi-electrons an atom
+				contributes into a pi-system, if any. This is an optional attribute
+				that should be set if an atom reference is used in the electron
+				system represntations of a real compound.</xsd:documentation>
+			</xsd:annotation>
+		</xsd:attribute>
+	</xsd:complexType>
+	<xsd:complexType name="BondType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">
+				A chemical bond connecting several atoms. Current
+				implementation provides the support for unlimited number
+				of atoms, whether it makes sense or not.
+			</xsd:documentation>
+		</xsd:annotation>
+		<xsd:complexContent>
+			<xsd:extension base="csrml:AnnotatedObjectType">
+				<xsd:sequence>
+					<xsd:element minOccurs="2" maxOccurs="unbounded"
+						name="atom" type="csrml:AtomReferenceType" />
+				</xsd:sequence>
+				<xsd:attribute name="order" type="csrml:BondTypeList"
+					use="optional" default="query">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">
+							Type of the bond. If a bond order is not
+							specified, which defaults to 'query', or
+							explicitly set to it, then the bond MUST
+							have a query annotation in order to evaluate
+							the match. Otherwise, if an explicit bond
+							order is given, the bond will be used as an
+							exact match. Note that explicit single, or
+							double bonds WILL NOT match any alternating
+							bond in an aromatic system.
+						</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+				<xsd:attribute name="stereo" type="csrml:BondStereoListType" use="optional">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">The stereo
+						configuration of the bond. This attribute only stores
+						the configuration data, it is not used for querying it.
+						</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+	<xsd:complexType name="ElectronSystemType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">An electron system representation.
+			Contains references to existing atoms as well as the
+			characteristics of the system itself.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:complexContent>
+			<xsd:extension base="csrml:AnnotatedObjectType">
+				<xsd:sequence>
+					<xsd:element minOccurs="1" maxOccurs="unbounded" name="atom" type="csrml:AtomReferenceType" />
+				</xsd:sequence>
+				<xsd:attribute name="type" type="csrml:ElectronSystemTypeList" use="optional" default="pi">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">Type of the electron
+						system, currently only sigma or pi systems may be represented.
+						It is optional and should only be used when real molecules
+						are stored.</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+				<xsd:attribute name="electronCount" type="xsd:integer" use="optional">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">Count of electrons in
+						the electron system. It is optional and should only be
+						used when real molecules are stored.</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+	<xsd:complexType name="ChemicalStructureType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">A chemical structure - either fully
+			defined, or a substructure, where some atoms/bonds may be missing.
+			Bonds, atoms, and the structure itself might be annotated with query
+			features, and have properties/descriptors assigned.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:complexContent>
+			<xsd:extension base="csrml:AnnotatedObjectType">
+				<!-- molecule data structure -->
+				<xsd:sequence>
+					<xsd:element minOccurs="1" maxOccurs="1" name="atoms">
+						<xsd:annotation>
+							<xsd:documentation xml:lang="en">Array of atoms of
+							the chemical structure</xsd:documentation>
+						</xsd:annotation>
+						<xsd:complexType>
+							<xsd:sequence>
+								<xsd:element minOccurs="1" maxOccurs="unbounded" ref="csrml:atom">
+									<xsd:annotation>
+										<xsd:documentation xml:lang="en">Instances of
+										atoms building up the chemical structure.</xsd:documentation>
+									</xsd:annotation>
+								</xsd:element>
+							</xsd:sequence>
+						</xsd:complexType>
+					</xsd:element>
+					<xsd:element minOccurs="1" maxOccurs="1" name="bonds">
+						<xsd:annotation>
+							<xsd:documentation xml:lang="en">Array of bonds of
+							the chemical structure</xsd:documentation>
+						</xsd:annotation>
+						<xsd:complexType>
+							<xsd:sequence>
+								<xsd:element minOccurs="0" maxOccurs="unbounded" ref="csrml:bond">
+									<xsd:annotation>
+										<xsd:documentation xml:lang="en">Bonds
+										between atoms in the structure. The bond
+										model allows a bond to involve more than,
+										but not less than two atoms. The current
+										implementation, however, works with
+										2-atom bonds only.</xsd:documentation>
+									</xsd:annotation>
+								</xsd:element>
+							</xsd:sequence>
+						</xsd:complexType>
+					</xsd:element>
+					<xsd:element minOccurs="0" maxOccurs="1" name="elSystems">
+						<xsd:annotation>
+							<xsd:documentation xml:lang="en">Array of electron
+							systems of the chemical structure</xsd:documentation>
+						</xsd:annotation>
+						<xsd:complexType>
+							<xsd:sequence>
+								<xsd:element minOccurs="0" maxOccurs="unbounded" ref="csrml:elSys">
+									<xsd:annotation>
+										<xsd:documentation xml:lang="en">Electron
+										systems of the chemical structure. The
+										electron system model allows one or more
+										atoms in a system. Current implementation
+										supports only pi-electron systems.</xsd:documentation>
+									</xsd:annotation>
+								</xsd:element>
+							</xsd:sequence>
+						</xsd:complexType>
+					</xsd:element>
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+	<xsd:complexType name="PropertyType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">A property that can be associated
+			with any object that may have annotations assigned.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:complexContent>
+			<xsd:extension base="csrml:DocumentedObjectType">
+				<xsd:choice>
+					<xsd:element name="scalar" minOccurs="1" maxOccurs="1" type="csrml:ScalarValueType">
+						<xsd:annotation>
+							<xsd:documentation xml:lang="en">Scalar property value,
+							that is, a single value of a property.</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+					<xsd:element name="vector" minOccurs="1" maxOccurs="1" type="csrml:VectorValueType">
+						<xsd:annotation>
+							<xsd:documentation xml:lang="en">Vector property value,
+							that is, several values of a property, like list,
+							or one-dimensional array.</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+					<xsd:element name="matrix" minOccurs="1" maxOccurs="1" type="csrml:MatrixValueType">
+						<xsd:annotation>
+							<xsd:documentation xml:lang="en">Matrix property value,
+							that is, multiple values of a property, two-dimensional array.</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+				</xsd:choice>
+				<xsd:attribute name="name" use="required" type="xsd:string">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">Name of the property.
+						It is a required element to identify the property/descriptor,
+						e.g. M_WEIGHT for molecular weight. The name must be
+						registered within the property map at the beginning of
+						the document.</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+	<xsd:complexType name="ChemicalClassType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">
+				A definition of a chemical type, e.g. the classification of
+				chemical moieties etc. Describes a category to which a
+				substructure/reaction rule belongs, may also include another
+				sub-categories up to an unlimited depth.
+			</xsd:documentation>
+		</xsd:annotation>
+		<xsd:complexContent>
+			<xsd:extension base="csrml:DocumentedObjectType">
+				<xsd:sequence>
+					<xsd:element name="property" type="csrml:PropertyType" minOccurs="0" maxOccurs="unbounded" >
+						<xsd:annotation>
+							<xsd:documentation xml:lang="en">Unlimited set of
+							properties and descriptors that can be assigned to
+							any annotated object.</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+					<xsd:element name="tag" minOccurs="0" maxOccurs="unbounded" type="csrml:TagType">
+						<xsd:annotation>
+							<xsd:documentation xml:lang="en">Optionally present
+							tags that may be assigned to a rule. Tags are
+							intended to be used e.g. for multi-labeling etc.</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+					<xsd:element ref="csrml:class" minOccurs="0" maxOccurs="unbounded">
+						<xsd:annotation>
+							<xsd:documentation xml:lang="en">
+								Nested chemical classes (categories).
+							</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+				</xsd:sequence>
+				<xsd:attribute name="id" type="xsd:NMTOKEN" use="optional">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">
+							Unique ID of the chemical class (category). If present,
+							gives an ID of the class. If missing, the class is
+							the instance and must have a subgraph reference assigned.
+						</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+				<xsd:attribute name="subgraph" type="xsd:NMTOKEN" use="optional">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">
+							Reference to a subgraph that represents the chemical
+							class, e.g. moiety, scaffold, etc. This is optional
+							since not all the classes will have to be associated
+							with a chemical substructure. However, if they are,
+							the substructure must be known within actual runtime scope.
+						</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+				<xsd:attribute name="reaction-rule" type="xsd:NMTOKEN" use="optional">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">
+							Reference to a reaction rulw that represents the reaction
+							class. This is optional since not all the classes will
+							have to be associated with a reaction rule. However, if
+							they are, the rule must be known within actual runtime scope.
+						</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+	<xsd:simpleType name="TagType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Tag definition. A tag can be
+			assigned to a subgraph which can be used for multi-labeling etc.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:restriction base="xsd:string">
+			<xsd:whiteSpace value="collapse"/>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:complexType name="ReferenceSourceType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Source of an object. Must uniquely
+			identify the location of the referenced object. Missing 'source'
+			element means the referred referenced object resides in the current
+			document. It is the responsibility of the application to interpret
+			the source's values in the correct way. Currently there is no syntax
+			definition for it.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:complexContent>
+			<xsd:extension base="xsd:anyType"/>
+		</xsd:complexContent>
+	</xsd:complexType>
+	<xsd:complexType name="MoleculeReferenceType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">
+				Reference to a molecule within current document
+			</xsd:documentation>
+		</xsd:annotation>
+		<xsd:complexContent>
+			<xsd:extension base="csrml:DocumentedObjectType">
+				<xsd:sequence>
+					<xsd:element name="source" type="csrml:ReferenceSourceType" minOccurs="0" maxOccurs="1" />
+				</xsd:sequence>
+				<xsd:attribute name="id" type="xsd:NMTOKEN" use="required">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">ID of the referenced
+						molecule within the given source (or in the current
+						document, if no source is given).</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+	<xsd:complexType name="SubgraphType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">CSMRL subgraph. Subgraph rule describes
+			typically a substructure search query.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:complexContent>
+			<xsd:extension base="csrml:AnnotatedObjectType">
+				<xsd:sequence>
+					<xsd:element name="tag" minOccurs="0" maxOccurs="unbounded" type="csrml:TagType">
+						<xsd:annotation>
+							<xsd:documentation xml:lang="en">Optionally present
+							tags that may be assigned to a subgraph. Tags are
+							intended to be used e.g. for multi-labeling etc.</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+					<xsd:element minOccurs="1" maxOccurs="unbounded" ref="csrml:molecule">
+						<xsd:annotation>
+							<xsd:documentation xml:lang="en">Query substructure.
+							May be a complete molecule, a substructure, or even
+							several disconnected fragments, possibly annotated
+							with various query features.</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+					<xsd:element name="mustMatch" minOccurs="1" maxOccurs="1">
+						<xsd:annotation>
+							<xsd:documentation xml:lang="en">Set of positive
+							test cases, i.e. molecules that must match the
+							defined substructure query.</xsd:documentation>
+						</xsd:annotation>
+						<xsd:complexType>
+							<xsd:sequence>
+								<xsd:choice>
+									<xsd:element minOccurs="1" maxOccurs="unbounded" ref="csrml:molecule">
+										<xsd:annotation>
+											<xsd:documentation xml:lang="en">Positive
+											test case, i.e. compounds that must match
+											the subgraph defined herein</xsd:documentation>
+										</xsd:annotation>
+									</xsd:element>
+									<xsd:element name="molref" minOccurs="1" maxOccurs="unbounded" type="csrml:MoleculeReferenceType">
+										<xsd:annotation>
+											<xsd:documentation xml:lang="en">Positive
+											test case, i.e. compounds that must match
+											the subgraph defined herein. The molecule(s)
+											are defined elsewhere as standalone molecule
+											elements</xsd:documentation>
+										</xsd:annotation>
+									</xsd:element>
+								</xsd:choice>
+							</xsd:sequence>
+						</xsd:complexType>
+					</xsd:element>
+					<xsd:element name="mustNotMatch" minOccurs="1" maxOccurs="1">
+						<xsd:annotation>
+							<xsd:documentation xml:lang="en">Set of negative test
+							cases, i.e. molecules that must not match the defined
+							substructure query.</xsd:documentation>
+						</xsd:annotation>
+						<xsd:complexType>
+							<xsd:sequence>
+								<xsd:choice>
+									<xsd:element minOccurs="1" maxOccurs="unbounded" ref="csrml:molecule">
+										<xsd:annotation>
+											<xsd:documentation xml:lang="en">Negative
+											test case, i.e. compounds that must NOT
+											match the subgraph defined herein</xsd:documentation>
+										</xsd:annotation>
+									</xsd:element>
+									<xsd:element name="molref" minOccurs="1" maxOccurs="unbounded" type="csrml:MoleculeReferenceType">
+										<xsd:annotation>
+											<xsd:documentation xml:lang="en">Negative
+											test case, i.e. compounds that must match
+											the subgraph defined herein. The molecule(s)
+											are defined elsewhere as standalone molecule
+											elements</xsd:documentation>
+										</xsd:annotation>
+									</xsd:element>
+								</xsd:choice>
+							</xsd:sequence>
+						</xsd:complexType>
+					</xsd:element>
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+	<xsd:complexType name="ValueRangeType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Value range of an annotation
+			property.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:sequence>
+			<xsd:choice>
+				<xsd:element minOccurs="0" maxOccurs="1" name="minInclusive" type="xsd:string">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">Optional minimal value.
+						An annotation, depending on what feature it checks, might
+						have a range of acceptable values. This is the minimal
+						allowed value (inclusive). The annotation implementation
+						is responsible for interpreting the value passed as a
+						generic string.</xsd:documentation>
+					</xsd:annotation>
+				</xsd:element>
+				<xsd:element minOccurs="0" maxOccurs="1" name="minExclusive" type="xsd:string">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">Optional minimal value.
+						An annotation, depending on what feature it checks, might
+						have a range of acceptable values. This is the minimal
+						allowed value (exclusive). The annotation implementation
+						is responsible for interpreting the value passed as a
+						generic string.</xsd:documentation>
+					</xsd:annotation>
+				</xsd:element>
+			</xsd:choice>
+			<xsd:choice>
+				<xsd:element minOccurs="0" maxOccurs="1" name="maxInclusive" type="xsd:string">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">Optional maximal value.
+						An annotation, depending on what feature it checks, might
+						have a range of acceptable values. This is the maximal
+						allowed value (inclusive). The annotation implementation
+						is responsible for interpreting the value passed as a
+						generic string.</xsd:documentation>
+					</xsd:annotation>
+				</xsd:element>
+				<xsd:element minOccurs="0" maxOccurs="1" name="maxExclusive" type="xsd:string">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">Optional maximal value.
+						An annotation, depending on what feature it checks, might
+						have a range of acceptable values. This is the maximal
+						allowed value (exclusive). The annotation implementation
+						is responsible for interpreting the value passed as a
+						generic string.</xsd:documentation>
+					</xsd:annotation>
+				</xsd:element>
+			</xsd:choice>
+		</xsd:sequence>
+		<xsd:attributeGroup ref="csrml:logicAttributes"/>
+	</xsd:complexType>
+	<xsd:complexType name="AnnotatedFeatureType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">A single query criterion assigned
+			to an atom, bond, group, molecule, or reaction. Defines annotation
+			element(s) which may be attached to an atom, bond, substructure, or
+			molecule. The annotations may be nested so that the upper level
+			annotation will group the nested ones and combine them using the
+			logical expressions specified.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:complexContent>
+			<xsd:extension base="csrml:DocumentedObjectType">
+				<xsd:sequence>
+					<xsd:element minOccurs="0" maxOccurs="unbounded" name="value" type="xsd:string">
+						<xsd:annotation>
+							<xsd:documentation xml:lang="en">Single value or
+							list of singular values assigned to the annotation</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+					<xsd:element minOccurs="0" maxOccurs="unbounded" name="range" type="csrml:ValueRangeType">
+						<xsd:annotation>
+							<xsd:documentation xml:lang="en">One or more ranges
+							of values which the annotation property may have</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+					<xsd:element minOccurs="0" maxOccurs="unbounded" name="matchIf" type="csrml:AnnotatedFeatureType">
+						<xsd:annotation>
+							<xsd:documentation xml:lang="en">Optionally nested
+							annotations that build a logical group with the parent
+							annotation. The grouped annotations are evaluated
+							together using the logical conditions specified.</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+				</xsd:sequence>
+				<xsd:attribute name="type" use="optional" default="query">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">Type of annotation -
+						'query' to mark the features to be checked, 'testValue'
+						to specify tested feature value(s). Use 'testValue'
+						annotation type to provide values of annotated query
+						features in test case molecules to demonstrate the query
+						logic in a situation when the queried features cannot
+						be computed and evaluated.</xsd:documentation>
+					</xsd:annotation>
+					<xsd:simpleType>
+						<xsd:restriction base="xsd:string">
+							<xsd:enumeration value="query">
+								<xsd:annotation>
+									<xsd:documentation xml:lang="en">Annotation
+									is a query annotation</xsd:documentation>
+								</xsd:annotation>
+							</xsd:enumeration>
+							<xsd:enumeration value="testValue">
+								<xsd:annotation>
+									<xsd:documentation xml:lang="en">Annotation
+									is a test value annotation</xsd:documentation>
+								</xsd:annotation>
+							</xsd:enumeration>
+						</xsd:restriction>
+					</xsd:simpleType>
+				</xsd:attribute>
+				<xsd:attribute name="feature" type="xsd:NMTOKEN" use="required">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">Feature key of the
+						annotation. Indicates which feature is to be examined to
+						deduce a match. The value of this attribute is used to
+						locate the annotation's implementation. There should be
+						a dictionary where the currently implemented annotations
+						are listed - this key must refer there pointing to the
+						annotation implementation.</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+				<xsd:attribute name="severity" type="csrml:SeverityType" default="skipQuery" use="optional">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">The severity of the
+						annotation (i.e. its importance for the query evaluation).
+						The default value 'skipQuery' allows the application to
+						skip the entire query if the feature is not available at
+						the time of query evaluation. The CSRML author may change
+						this value in order to modify the application's behavior
+						depending on the feature's importance.</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+				<xsd:attributeGroup ref="csrml:logicAttributes">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">Definition of the logical
+						operations that shall be applied to the result of annotation's
+						evaluation.	</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attributeGroup>
+				<xsd:attribute name="descriptorKey" use="optional" type="xsd:string" default="">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">Optional calculable
+						property (descriptor) name or key, that needs to be
+						computed when this feature match is evaluated. The
+						syntax of the key string is implementation-depended.
+						</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+	<xsd:complexType name="ScalarValueType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Scalar property value, that is,
+			a single value of a property.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:attribute name="value" use="required" type="xsd:string">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">Single value of the property.
+				The correspondence between the allowed value data type and the
+				actual value given here is the responsibility of the application.</xsd:documentation>
+			</xsd:annotation>
+		</xsd:attribute>
+	</xsd:complexType>
+	<xsd:simpleType name="IndexedValueFacet">
+		<xsd:restriction base="xsd:string">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">Non-empty alphanumeric string</xsd:documentation>
+			</xsd:annotation>
+			<xsd:whiteSpace value="collapse"/>
+			<xsd:minLength value="1"/>
+			<xsd:pattern value="\S(.*)"></xsd:pattern>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:complexType name="IndexedValueType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Index of an element within a vector or a matrix.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:simpleContent>
+			<xsd:extension base="csrml:IndexedValueFacet">
+				<xsd:attribute name="index" use="required" type="xsd:nonNegativeInteger">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">Index of the element
+						within the vector. XML does not guarantee the order of
+						appearance of the elements of the same priority at the
+						same nesting level so the items of a vector must be indexed.</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+			</xsd:extension>
+		</xsd:simpleContent>
+	</xsd:complexType>
+	<xsd:complexType name="VectorValueType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Vector property value, that is,
+			several values of a property, like list, or one-dimensional array.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:sequence>
+			<xsd:element name="value" minOccurs="1" maxOccurs="unbounded" type="csrml:IndexedValueType">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">One or more single values
+					for the vectorial property. The correspondence between the
+					allowed value data type and the actual value given here is
+					the responsibility of the application.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+		</xsd:sequence>
+		<xsd:attribute name="size" use="required" type="xsd:nonNegativeInteger">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">Dimensionality of the vector.</xsd:documentation>
+			</xsd:annotation>
+		</xsd:attribute>
+	</xsd:complexType>
+	<xsd:complexType name="MatrixValueType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Matrix property value, that is,
+			multiple values of a property, two-dimensional array. The application
+			is free to store it either row-wise or column-wise.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:sequence>
+			<xsd:choice>
+				<xsd:element name="column" minOccurs="1" maxOccurs="unbounded">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">One or more columns of
+						values for the matrix. The correspondence between the
+						allowed value data type and the actual value given here
+						is the responsibility of the application.</xsd:documentation>
+					</xsd:annotation>
+					<xsd:complexType>
+						<xsd:complexContent>
+							<xsd:extension base="csrml:VectorValueType">
+								<xsd:attribute name="index" type="xsd:nonNegativeInteger" use="required">
+									<xsd:annotation>
+										<xsd:documentation xml:lang="en">Column index</xsd:documentation>
+									</xsd:annotation>
+								</xsd:attribute>
+							</xsd:extension>
+						</xsd:complexContent>
+					</xsd:complexType>
+				</xsd:element>
+				<xsd:element name="row" minOccurs="1" maxOccurs="unbounded">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">One or more rows of
+						values for the matrix. The correspondence between the
+						allowed value data type and the actual value given here
+						is the responsibility of the application.</xsd:documentation>
+					</xsd:annotation>
+					<xsd:complexType>
+						<xsd:complexContent>
+							<xsd:extension base="csrml:VectorValueType">
+								<xsd:attribute name="index" type="xsd:nonNegativeInteger" use="required">
+									<xsd:annotation>
+										<xsd:documentation xml:lang="en">Row index</xsd:documentation>
+									</xsd:annotation>
+								</xsd:attribute>
+							</xsd:extension>
+						</xsd:complexContent>
+					</xsd:complexType>
+				</xsd:element>
+			</xsd:choice>
+		</xsd:sequence>
+		<xsd:attribute name="count" use="required" type="xsd:nonNegativeInteger">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">Count of single vector elements
+				each representing either rows or columns of the matrix.</xsd:documentation>
+			</xsd:annotation>
+		</xsd:attribute>
+	</xsd:complexType>
+	<!-- attributes and attribute type definitions -->
+	<xsd:attributeGroup name="logicAttributes">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Attributes commonly used by entities
+			that can be combined into a logical expression.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:attribute name="combineBy" default="and" use="optional">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">Logical condition used to combine
+				current element with another elements.</xsd:documentation>
+			</xsd:annotation>
+			<xsd:simpleType>
+				<xsd:restriction base="xsd:string">
+					<xsd:enumeration value="and">
+						<xsd:annotation>
+							<xsd:documentation xml:lang="en">Combine the results
+							of evaluation of the "parent annotation" and all
+							the nested annotations by logical conjunction.</xsd:documentation>
+						</xsd:annotation>
+					</xsd:enumeration>
+					<xsd:enumeration value="or">
+						<xsd:annotation>
+							<xsd:documentation xml:lang="en">Combine the results
+							of evaluation of the "parent annotation" and all
+							the nested annotations by logical disjunction.</xsd:documentation>
+						</xsd:annotation>
+					</xsd:enumeration>
+					<xsd:enumeration value="xor">
+						<xsd:annotation>
+							<xsd:documentation xml:lang="en">Combine the results
+							of evaluation of the "parent annotation" and all
+							the nested annotations by logical exclusive disjunction.</xsd:documentation>
+						</xsd:annotation>
+					</xsd:enumeration>
+				</xsd:restriction>
+			</xsd:simpleType>
+		</xsd:attribute>
+		<xsd:attribute name="negate" default="false" use="optional">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">Logical negation of the
+				condition expressed by this element.</xsd:documentation>
+			</xsd:annotation>
+			<xsd:simpleType>
+				<xsd:restriction base="xsd:string">
+					<xsd:enumeration value="false">
+						<xsd:annotation>
+							<xsd:documentation xml:lang="en">Do not negate neither
+							result of the evaluation of this annotation
+							itself nor of any nested annotations.</xsd:documentation>
+						</xsd:annotation>
+					</xsd:enumeration>
+					<xsd:enumeration value="true">
+						<xsd:annotation>
+							<xsd:documentation xml:lang="en">Negate the result
+							of the evaluation of this annotation only, do not
+							negate results of the evaluation of any nested
+							annotations.</xsd:documentation>
+						</xsd:annotation>
+					</xsd:enumeration>
+					<xsd:enumeration value="nested">
+						<xsd:annotation>
+							<xsd:documentation xml:lang="en">Negate combined
+							result of the evaluation of nested annotations, do
+							not negate the result of the evaluation of this
+							annotation itself.</xsd:documentation>
+						</xsd:annotation>
+					</xsd:enumeration>
+					<xsd:enumeration value="both">
+						<xsd:annotation>
+							<xsd:documentation xml:lang="en">Negate both the
+							result of the evaluation of this annotation only
+							and combined results of the evaluation of any nested
+							annotations.</xsd:documentation>
+						</xsd:annotation>
+					</xsd:enumeration>
+				</xsd:restriction>
+			</xsd:simpleType>
+		</xsd:attribute>
+	</xsd:attributeGroup>
+	<xsd:simpleType name="BondTypeList">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Definition of supported bond
+			types.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:restriction base="xsd:string">
+			<xsd:enumeration value="any">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Any bond. No bond order
+					check is done, query annotation *may be* applied to narrow
+					down the matches.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="single">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Single bond. Only explicit
+					single bonds will match, additional query annotations may be
+					added as well. Note: regular single bonds WILL NOT match
+					alternating aromatic ones.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="double">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Double bond. Only explicit
+					double bonds will match, additional query annotation may be
+					added as well. Note: regular double bonds WILL NOT match
+					alternating aromatic ones.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="triple">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Triple bond. Only explicit
+					triple bonds will match, additional query annotations may be
+					added as well.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="quadruple">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Quadruple bond. Only explicit
+					quadruple bonds will match, additional query annotations may
+					be added as well.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="coordinate">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Coordinate bond. Only dative
+					(also known as coordinate, or dipolar) bonds will match,
+					additional query annotations may be added as well. Added to
+					provide the basis for the future implementations.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="query">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Query bond type. Indicates
+					that the bond does not have specific bond order requirements,
+					but must have annotation(s) indicating the matching bonds.
+					May not be uses in the bond lists, only allowed in the bond
+					order specifications!</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name="RadicalTypeList">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Types of supported radicals.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:restriction base="xsd:string">
+			<xsd:enumeration value="closed">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Closed shell (no radical).
+					Completely filled stable valence shell. This is the default state.
+					</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="singlet">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Singlet radical. Singlet
+					diradicals have a pair of electrons, one spin-up and one
+					spin-down [+1/2 and -1/2], in one orbital with the second
+					degenerated (empty with equal energy) orbital.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="doublet">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Doublet radical. A simple
+					free radical with one unpaired electron</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="triplet">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Triplet radical. Triplet
+					diradicals have two "spin-up" electrons in adjacent, degenerate
+					(equal energy) orbitals, e.g. of the same spin, +1/2 and +1/2.
+					</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name="ElectronSystemTypeList">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Types of supported electron systems.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:restriction base="xsd:string">
+			<xsd:enumeration value="sigma">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Classical sigma bond.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="pi">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Pi-electron system.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="other">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Reserved for other electron
+					systems (currently not implemented).</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name="SeverityType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Defines the allowed severity types
+			for the query features</xsd:documentation>
+		</xsd:annotation>
+		<xsd:restriction base="xsd:string">
+			<xsd:enumeration value="skipFeature">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">If the query feature is not
+					available at runtime, it may be skipped. The application
+					should issue a warning about skipped feature. The query still
+					can be evaluated without taking the missing feature into
+					account.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="skipQuery">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">If the query feature is not
+					available at runtime, it cannot be skipped. The entire query
+					must be canceled and the application should skip to the next
+					query, if any. A warning must be issued indicating that the
+					query could not be evaluated, the skipped feature must be
+					named too.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="stop">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">If the query feature is not
+					available at runtime, the application cannot continue. It
+					must issue an error message and stop trying to evaluate any
+					queries in the current document.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name="PropertyPrototypeList">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Allowed property prototypes</xsd:documentation>
+		</xsd:annotation>
+		<xsd:restriction base="xsd:string">
+			<xsd:enumeration value="scalar">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Single value (scalar).</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="vector">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Vector property, i.e. list,
+					or array of values of the same type. Polymorphic arrays/lists
+					are not supported.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="matrix">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Matrix property, i.e.
+					two-dimensional array of values of the same type. Polymorphic
+					matrices are not supported.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name="AtomStereoListType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Allowed values for atom stereo information</xsd:documentation>
+		</xsd:annotation>
+		<xsd:restriction base="xsd:string">
+			<xsd:enumeration value="R">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">R-configuration</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="S">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">S-configuration</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="*">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Any configuration</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name="BondStereoListType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Allowed values for bond stereo information</xsd:documentation>
+		</xsd:annotation>
+		<xsd:restriction base="xsd:string">
+			<xsd:enumeration value="E">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">E-configuration (cis)</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Z">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Z-configuration (trans)</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="W">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Wedge (up) bond</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="H">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Hatch (down) bond</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="*">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Any configuration</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+		</xsd:restriction>
+	</xsd:simpleType>
+
+	<!-- ######################################################################
+	                         Annotations' dictionary
+	####################################################################### -->
+	<!-- general document structure definition -->
+	<xsd:element name="annotations">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Definition of the syntax of
+			annotations for reactivity structure alerts, transformations and
+			descriptive features used in reaction generation engine to represent
+			the reaction types.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:complexType>
+			<xsd:sequence maxOccurs="unbounded">
+				<xsd:element name="annotation-group" type="csrml:AnnotationSequenceType">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">Specification of a group
+						of implemented annotations.</xsd:documentation>
+					</xsd:annotation>
+				</xsd:element>
+			</xsd:sequence>
+		</xsd:complexType>
+		<xsd:unique name="featureKeyMustBeUnique">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">Enforcement of the uniqueness
+				of the feature keys.</xsd:documentation>
+			</xsd:annotation>
+			<xsd:selector xpath=".//csrml:annotation-group/csrml:annotation" />
+			<xsd:field xpath="@featureKey" />
+		</xsd:unique>
+	</xsd:element>
+	<!-- simple types  -->
+	<xsd:simpleType name="AnnotationGroupType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Supported annotation groups defined
+			for reaction annotations. There are two groups supported: 'query' for
+			the annotations specifying the substructure query features, and 'info'
+			for descriptive annotations.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:restriction base="xsd:string">
+			<xsd:enumeration value="query">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Group of query annotations.
+					The query annotations are used to specify substructure queries.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="info">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Group of descriptive
+					annotations, e.g. implementation details etc</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name="DataType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Allowed data types for values used
+			to specify the annotated feature or properties/descriptors.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:restriction base="xsd:string">
+			<xsd:enumeration value="xsd:string">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">String data type</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="xsd:hexadecimal">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Hexadecimal integer type,
+					e.g. hexadecimal values used for hash codes. It is in general
+					a string value which needs to be handled specially (like a
+					number which it in fact is)</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="xsd:boolean">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Boolean data type</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="xsd:integer">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Integer data type</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="xsd:double">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Double data type</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name="ChemicalDomainType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Chemical domain types. Used in
+			annotation definitions, the domain type defines the class of chemical
+			object for which the annotated features can be used. Used for property
+			definitions it defines the class of chemical objects which may have
+			given property or descriptor assigned (or calculated).</xsd:documentation>
+		</xsd:annotation>
+		<xsd:restriction base="xsd:string">
+			<xsd:enumeration value="class">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Class property or annotation.
+					Applicable to the instances of class elements in classes
+					hierarchies.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="atom">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atom property or annotation.
+					Can only be used on "atom" elements.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="bond">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Bond property or annotation.
+					Can only be used on "bond" elements.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="molecule">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Molecule property or annotation.
+					Can only be used on "molecule" elements.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="elSys">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Electron system property or
+					annotation. Can only be used on "electron system" elements.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="subgraph">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Subgraph rule property or
+					annotation. Can only be used on "subgraph" elements.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="reaction">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Reaction property or
+					annotation. Can only be used on "reaction" elements.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="reaction-rule">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Reaction rule property or
+					annotation. Can only be used on "reaction rule" elements.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:simpleType name="MultiplicityType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Preferrable multiplicity of values
+			for annotations. Indicates how many values and/or value ranges should
+			be assigned to an annotation instance. For some annotations, it makes
+			sense to have only one value, e.g. for Boolean annotations. For
+			the others, however, the set of values may include one or more values,
+			or one or more value ranges, or a mixture of both. This is not an
+			enforcing attribute, e.g. it should recommend the GUI application to
+			offer a specific input widget, but the user still should be able to
+			input something different, i.e. to specify a range even if some
+			single values are preferred. The only meaningful limitation here is
+			for "Boolean" values - they only make sense once, so no multiple input
+			possibilities are necessary.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:restriction base="xsd:string">
+			<xsd:enumeration value="none">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">No values are allowed with
+					the annotation. Used with combining annotations which are
+					intended to nest other annotations but not to have their own
+					values.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="single">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Single value of specified
+					data type is expected.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="multiple">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">One or more singular values
+					of specified data type are expected.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="range">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">One or more range of values
+					of specified data type are expected.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="mixed">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">A mixture of single value
+					and/or ranges of specified data type is expected.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<!-- complex types -->
+	<xsd:complexType name="AnnotationSequenceType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Definition of annotation sequence
+			with at least one annotation in it</xsd:documentation>
+		</xsd:annotation>
+		<xsd:sequence>
+			<xsd:element name="annotation" type="csrml:AnnotationType" minOccurs="0" maxOccurs="unbounded"/>
+		</xsd:sequence>
+		<xsd:attribute name="group" type="csrml:AnnotationGroupType" use="required">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">Defines the group of the annotation.
+				Allowed values are 'info', and 'query'.</xsd:documentation>
+			</xsd:annotation>
+		</xsd:attribute>
+	</xsd:complexType>
+	<xsd:complexType name="AnnotationValueType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Specification of optionally allowed
+			values</xsd:documentation>
+		</xsd:annotation>
+		<xsd:simpleContent>
+			<xsd:extension base="xsd:string">
+				<xsd:attribute name="name" use="required" type="xsd:string">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">Name of the value</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+			</xsd:extension>
+		</xsd:simpleContent>
+	</xsd:complexType>
+	<xsd:complexType name="AnnotationType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">A single query criterion annotated
+			to an atom, bond, group, or molecule. Defines an 'annotation' element
+			which may be attached to an atom, bond, substructure, molecule, and
+			reaction. The annotations may be nested so that the upper level
+			annotation will group the nested ones and combine them using the
+			logical expressions specified.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:sequence>
+			<xsd:element name="label" minOccurs="1" maxOccurs="1">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Label representing the
+					annotation in GUI</xsd:documentation>
+				</xsd:annotation>
+				<xsd:simpleType>
+					<xsd:restriction base="xsd:string">
+						<xsd:whiteSpace value="collapse"/>
+					</xsd:restriction>
+				</xsd:simpleType>
+			</xsd:element>
+			<xsd:element name="description" minOccurs="1" maxOccurs="1">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Description of the
+					annotation element</xsd:documentation>
+				</xsd:annotation>
+				<xsd:simpleType>
+					<xsd:restriction base="xsd:string">
+						<xsd:whiteSpace value="collapse"/>
+					</xsd:restriction>
+				</xsd:simpleType>
+			</xsd:element>
+			<xsd:element name="comment" minOccurs="0" maxOccurs="1">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Optional comment</xsd:documentation>
+				</xsd:annotation>
+				<xsd:simpleType>
+					<xsd:restriction base="xsd:string">
+						<xsd:whiteSpace value="collapse"/>
+					</xsd:restriction>
+				</xsd:simpleType>
+			</xsd:element>
+			<xsd:element name="value" type="csrml:AnnotationValueType" minOccurs="0" maxOccurs="unbounded">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Optional set of allowed
+					value(s) that an annotated feature may have. Example - bond
+					orders are limited to single, double, triple, quadruple, and
+					query. No other tokens are allowed.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+		</xsd:sequence>
+		<xsd:attribute name="featureKey" type="xsd:ID" use="required">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">Key of the annotated feature.
+				Used to reference the annotations when they are assigned to
+				an object so that they can be found in the dictionary where the
+				supported annotations are listed.</xsd:documentation>
+			</xsd:annotation>
+		</xsd:attribute>
+		<xsd:attribute name="dataType" type="csrml:DataType" use="required">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">Defines the data type used to
+				set the annotation value</xsd:documentation>
+			</xsd:annotation>
+		</xsd:attribute>
+		<xsd:attribute name="domain" type="csrml:ChemicalDomainType" use="required">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">Defines the domain of the
+				annotation, e.g. is it atom, bond, or molecule</xsd:documentation>
+			</xsd:annotation>
+		</xsd:attribute>
+		<xsd:attribute name="multiplicity" type="csrml:MultiplicityType" use="optional" default="single">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">Defines the multiplicity of values
+				which are allowed for the annotation when it is assigned to an
+				object</xsd:documentation>
+			</xsd:annotation>
+		</xsd:attribute>
+		<xsd:attribute name="implementation" type="xsd:NMTOKEN" use="required">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">Module that implements the
+				specified annotation type. Annotation modules are responsible for
+				understanding the annotation, implementing its logic, and applying
+				it when query match is tested.</xsd:documentation>
+			</xsd:annotation>
+		</xsd:attribute>
+		<xsd:attribute name="priority" type="xsd:nonNegativeInteger" use="required">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">Defines the annotation priority
+				(0 - highest, 1 - next lower etc). The XML does not guarantee that
+				the annotation elements are read and interpreted in the given order,
+				thus a priority attribute should be used to enforce evaluation
+				order since the user can assign here the required priorities.</xsd:documentation>
+			</xsd:annotation>
+		</xsd:attribute>
+		<xsd:attribute name="minValue" type="xsd:string">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">Optional minimal value. An
+				annotation, depending on what feature it checks, might have a
+				range of meaningful values. This is the minimal allowed value
+				(inclusive). The annotation implementation is responsible for
+				interpreting the value passed as a generic string.</xsd:documentation>
+			</xsd:annotation>
+		</xsd:attribute>
+		<xsd:attribute name="maxValue" type="xsd:string">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">Optional maximal value. An
+				annotation, depending on what feature it checks, might have a
+				range of meaningful values. This is the maximal allowed value
+				(inclusive). The annotation implementation is responsible for
+				interpreting the value passed as a generic string.</xsd:documentation>
+			</xsd:annotation>
+		</xsd:attribute>
+		<xsd:attribute name="enforcedMultiplicity" type="xsd:boolean" use="optional" default="false">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">Forces the implementing
+				application to limit the input possibilities of annotation values.
+				Normally, an annotation prescribes with its "multiplicity"
+				attribute the kind of expected annotation values, and accordingly
+				the GUI application should offer corresponding input capabilities,
+				but users still may want to choose another value(s), e.g. input
+				range of values instead of a list of single values. The
+				"enforce-multiplicity" attribute set to "true" must forbid
+				input of non-expected value types for an annotation.</xsd:documentation>
+			</xsd:annotation>
+		</xsd:attribute>
+	</xsd:complexType>
+	<!-- ######################################################################
+	                         Reaction support
+	####################################################################### -->
+	<xsd:simpleType name="ReactionComponentRoleType">
+		<xsd:annotation>
+			<xsd:documentation>
+				Reaction component rule defines the role of a compound in a reaction.
+			</xsd:documentation>
+		</xsd:annotation>
+		<xsd:restriction base="xsd:string">
+			<xsd:enumeration value="reactant">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Reaction reactant (aka educt).</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="product">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Reaction product.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="catalyst">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Reaction catalyst.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="solvent">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Solvent.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="unknown">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Reaction component with an unknown role.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:complexType name="MappingType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Atom mapping information. Atoms
+			may have atom-atom mappings in a reaction which are unique integer
+			numbers that match on atoms of reactant and product sides.
+			</xsd:documentation>
+		</xsd:annotation>
+		<xsd:attribute name="atomId" type="xsd:NMTOKEN">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">Identifier of
+				an atom within the component</xsd:documentation>
+			</xsd:annotation>
+		</xsd:attribute>
+		<xsd:attribute name="mapping" type="xsd:positiveInteger">
+			<xsd:annotation>
+				<xsd:documentation xml:lang="en">Mapping number of
+				the given atom</xsd:documentation>
+			</xsd:annotation>
+		</xsd:attribute>
+	</xsd:complexType>
+	<xsd:complexType name="ReactionComponentType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">In-line reaction component.
+			Represents any possible reaction component, like reactant, product,
+			solvent, catalyst, etc. It should be used to describe full molecules
+			in a reaction or reaction rule, directly in a reaction instance.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:complexContent>
+			<xsd:extension base="csrml:ChemicalStructureType">
+				<xsd:sequence>
+					<xsd:element name="aaMap" maxOccurs="1" minOccurs="0">
+						<xsd:complexType>
+							<xsd:sequence>
+								<xsd:element name="map" type="csrml:MappingType" minOccurs="1" maxOccurs="unbounded"/>
+							</xsd:sequence>
+						</xsd:complexType>
+					</xsd:element>
+				</xsd:sequence>
+				<xsd:attribute name="role" use="required" type="csrml:ReactionComponentRoleType">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">Role of the reaction
+						component</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+				<xsd:attribute name="coefficient" type="xsd:double" use="optional" default="1">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">Stoichiometric
+						coefficient of the component.</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+				<xsd:attribute name="index" type="xsd:integer" use="optional">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">Index of an element.
+						Use this to preserve the order of reaction elements.</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+	<xsd:complexType name="ReactionType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Regular reaction instance - a
+			"real" reaction. Use to store actual reactions in CSRML format.
+			</xsd:documentation>
+		</xsd:annotation>
+		<xsd:complexContent>
+			<xsd:extension base="csrml:AnnotatedObjectType">
+				<xsd:sequence>
+					<xsd:element ref="csrml:component" minOccurs="2" maxOccurs="unbounded">
+						<xsd:annotation>
+							<xsd:documentation xml:lang="en">A component of a
+							reaction, e.g. reactant, product, etc.</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+	<xsd:complexType name="ReactionReferenceType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">
+				Reference to a reaction within current document
+			</xsd:documentation>
+		</xsd:annotation>
+		<xsd:complexContent>
+			<xsd:extension base="csrml:DocumentedObjectType">
+				<xsd:sequence>
+					<xsd:element name="source" type="csrml:ReferenceSourceType" minOccurs="0" maxOccurs="1" />
+				</xsd:sequence>
+				<xsd:attribute name="id" type="xsd:NMTOKEN" use="required">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">ID of the referenced
+						reaction within the given source (or in the current
+						document, if no source is given).</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+	<xsd:simpleType name="TransformationTypeList">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Definition of supported types of
+			transformations.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:restriction base="xsd:string">
+			<xsd:enumeration value="atomCharge">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Changes the formal
+					atomic charge.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="atomStereo">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Changes atom stereo
+					configuration. Reserved.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="bondOrder">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Changes the bond order,
+					or deletes, or creates a bond.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="bondStereo">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Changes bond stereo
+					configuration. Reserved.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="piSystem">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Alters the pi-electron system
+					in respect of atoms taking part in it. If the pi-system did not
+					exist before, it should be created.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:complexType name="TransformationType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Single transformation applied to an
+			atom, bond, or fragment.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:complexContent>
+			<xsd:extension base="csrml:DocumentedObjectType">
+				<xsd:sequence>
+					<xsd:element minOccurs="1" maxOccurs="unbounded" name="target" type="csrml:TransformationTargetType">
+						<xsd:annotation>
+							<xsd:documentation xml:lang="en">Atom references for
+							the atom, bond transformation, or electron system
+							being transformed. The atoms may or may not be the
+							part of an existing electron system, or bond, or may
+							belong to disconnected fragments as well.</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+					<xsd:element minOccurs="1" maxOccurs="1" name="change" type="csrml:TransformationChangeType">
+						<xsd:annotation>
+							<xsd:documentation xml:lang="en">Changes to be made.
+							The annotation should recognize the way a change is
+							described here.
+							</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+				</xsd:sequence>
+				<xsd:attribute name="index" type="xsd:integer" use="required" >
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">Serial number of the
+						transformation in the reaction. Use this to prescribe
+						the order of transformations.</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+				<xsd:attribute name="type" type="csrml:TransformationTypeList" use="required">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">Identifier of the
+						transformation type.</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+	<xsd:complexType name="TransformationTargetType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Single transformation target, that
+			is, an atom within a component's molecule.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:complexContent>
+			<xsd:extension base="csrml:DocumentedObjectType">
+				<xsd:attribute name="component" type="xsd:NMTOKEN" use="required" >
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">Reference to the rule's
+						component by its identifier.</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+				<xsd:attribute name="destination" type="xsd:NMTOKEN" use="required">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">Identifier of the
+						atom or bond within selected component.</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+				<xsd:attribute name="id" type="xsd:NMTOKEN" use="required">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">Unique ID of an object, ie
+						atom, bond, electron system, or molecule, etc. These identifiers
+						are used for reference purposes, thus they must be unique in the
+						respective scope of to maintain the referential integrity.
+						</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+	<xsd:simpleType name="TransformationChangeFacet">
+		<xsd:restriction base="xsd:string">
+			<xsd:whiteSpace value="collapse"/>
+			<xsd:pattern value="[RSEZ*]|([\+\-]){0,1}(([0-9]+)|target\(([a-zA-Z]+[0-9]+)\)|electron\([0-9]+\)|deconjugate|conjugate)">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">
+					The following facets are supported here:
+					<ul>
+					<li>R or S to set atom stereo configuration, or * to remove it,</li>
+					<li>E or Z to set double bond stereo configuration, or * to remove it,</li>
+					<li>a signed integer to change e.g. charges or bond orders,</li>
+					<li>(+/-)target(ID) to add or remove atoms from an electron system, or</li>
+					<li>(+/-)electron(int) to add or remove electrons from an electron system,</li>
+					<li>or conjugate, or deconjugate to change an electron system</li>
+					</ul>
+					</xsd:documentation>
+				</xsd:annotation>
+			</xsd:pattern>
+		</xsd:restriction>
+	</xsd:simpleType>
+	<xsd:complexType name="TransformationChangeType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">
+				Change defined by a transformation. By default, a change is relative
+				to the initial state of the object being transformed. However,
+				if "absolute" attribute is "true", the change becomes "absolute"
+				meaning that the stored value is forcefully assigned to the
+				transformed object after the transformation is completed.
+			</xsd:documentation>
+		</xsd:annotation>
+		<xsd:simpleContent>
+			<xsd:extension base="csrml:TransformationChangeFacet">
+				<xsd:attribute name="absolute" use="optional" type="xsd:boolean" default="false">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">Type of the change
+						defined by the value stored in the element. By default
+						the change is relative to the initial state. Set
+						"absolute" to "true" to enforce the value stored by
+						the change to be assigned to the transformed object.
+						</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+			</xsd:extension>
+		</xsd:simpleContent>
+	</xsd:complexType>
+	<xsd:complexType name="TransformationSetType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Set of transformations that need
+			to be applied to the molecule(s) to complete the reaction.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:sequence>
+			<xsd:element ref="csrml:transformation" minOccurs="0" maxOccurs="unbounded">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">
+						Manipulates single atoms by e.g. changing their charge,
+						stereo chemistry, etc; or manipulates bonds, by changing
+						the bond order between atoms, even not initially
+						connected ones; or manipulates electron system, by
+						changing the atoms participating in the system, or
+						altering electron counts, etc. Even not initially
+						connected atoms may be used as targets.
+					</xsd:documentation>
+				</xsd:annotation>
+			</xsd:element>
+		</xsd:sequence>
+	</xsd:complexType>
+	<xsd:complexType name="SubgraphReferenceType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">
+				Reference to a subgraph within current document
+			</xsd:documentation>
+		</xsd:annotation>
+		<xsd:complexContent>
+			<xsd:extension base="csrml:DocumentedObjectType">
+				<xsd:sequence>
+					<xsd:element minOccurs="0" maxOccurs="unbounded" name="property" type="csrml:PropertyType">
+						<xsd:annotation>
+							<xsd:documentation xml:lang="en">Unlimited set of
+							properties/descriptors that can be assigned to any
+							annotated object.</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+					<xsd:element name="source" type="csrml:ReferenceSourceType" minOccurs="0" maxOccurs="1" />
+				</xsd:sequence>
+				<xsd:attribute name="id" type="xsd:NMTOKEN" use="required">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">ID of the referenced
+						subgraph within the given source (or in the current
+						document, if no source is given).</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+				<xsd:attribute name="molId" type="xsd:NMTOKEN" use="required">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">ID of the referenced
+						molecule within the given subgraph.</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+	<xsd:complexType name="ReactionRuleComponentType">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Reaction rule component. May be
+			a reference to an existing subgraph, or an in-line molecule.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:complexContent>
+			<xsd:extension base="csrml:DocumentedObjectType">
+				<xsd:choice>
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">Either a reference to an existing
+						subgraph rule, or a molecule directly specified here.</xsd:documentation>
+					</xsd:annotation>
+					<xsd:element name="subgraph" minOccurs="1" maxOccurs="1" type="csrml:SubgraphReferenceType">
+						<xsd:annotation>
+							<xsd:documentation xml:lang="en">Reference to an existing
+							subgraph.</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+					<xsd:element ref="csrml:molecule" minOccurs="1" maxOccurs="1">
+						<xsd:annotation>
+							<xsd:documentation xml:lang="en">In-line specified molecule.</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+				</xsd:choice>
+				<xsd:attribute name="role" use="required" type="csrml:ReactionComponentRoleType">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">Role of the reaction
+						component</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+				<xsd:attribute name="coefficient" type="xsd:double" use="optional" default="1">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">Stoichiometric
+						coefficient of the component.</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+				<xsd:attribute name="index" type="xsd:integer" use="optional">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">Index of an element.
+						Use this to preserve the order of reaction elements.</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+				<xsd:attribute name="id" type="xsd:NMTOKEN" use="required">
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">ID of reaction component.
+						Reaction component ID is used to address the transformations.
+						Must be unique within a rule.</xsd:documentation>
+					</xsd:annotation>
+				</xsd:attribute>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+	<xsd:complexType name="ReactionRuleType">
+		<xsd:annotation>
+			<xsd:documentation xml:lamg="en">Subgraph(s) rule defining a
+			chemical reaction.</xsd:documentation>
+		</xsd:annotation>
+		<xsd:complexContent>
+			<xsd:extension base="csrml:AnnotatedObjectType">
+				<xsd:sequence>
+					<xsd:annotation>
+						<xsd:documentation xml:lang="en">
+							The reaction rule may contain immediate
+							reaction components which must be full fledged
+							molecules then, and reference already existing
+							query subgraphs.
+						</xsd:documentation>
+					</xsd:annotation>
+					<xsd:element name="tag" minOccurs="0" maxOccurs="unbounded" type="csrml:TagType">
+						<xsd:annotation>
+							<xsd:documentation xml:lang="en">Optionally present
+							tags that may be assigned to a rule. Tags are
+							intended to be used e.g. for multi-labeling etc.</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+					<xsd:element name="component" minOccurs="1" maxOccurs="unbounded" type="csrml:ReactionRuleComponentType">
+						<xsd:annotation>
+							<xsd:documentation xml:lang="en">Reaction rule
+							components, either references to subgraph queries,
+							or in-line molecules.</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+					<xsd:element minOccurs="1" maxOccurs="1" name="transformations" type="csrml:TransformationSetType">
+						<xsd:annotation>
+							<xsd:documentation xml:lang="en">Specification of
+							transformations required to carry out the reaction.
+							</xsd:documentation>
+						</xsd:annotation>
+					</xsd:element>
+					<xsd:element minOccurs="0" maxOccurs="1" name="example-reactions">
+						<xsd:complexType>
+							<xsd:sequence>
+								<xsd:element ref="csrml:reaction" minOccurs="0" maxOccurs="unbounded">
+									<xsd:annotation>
+										<xsd:documentation xml:lang="en">Example
+										reaction (inline).</xsd:documentation>
+									</xsd:annotation>
+								</xsd:element>
+								<xsd:element name="rxnref" minOccurs="0" maxOccurs="unbounded" type="csrml:ReactionReferenceType">
+									<xsd:annotation>
+										<xsd:documentation xml:lang="en">Example
+										reaction (references).</xsd:documentation>
+									</xsd:annotation>
+								</xsd:element>
+							</xsd:sequence>
+						</xsd:complexType>
+					</xsd:element>
+				</xsd:sequence>
+			</xsd:extension>
+		</xsd:complexContent>
+	</xsd:complexType>
+	<!-- ######################################################################
+	        Chemical elements and wildcard atoms types are below
+	        This part is quite big and static so it is put at the
+	        end of this file to simplify its reading.
+	####################################################################### -->
+	<xsd:simpleType name="AtomTypeList">
+		<xsd:annotation>
+			<xsd:documentation xml:lang="en">Definition of supported atom types</xsd:documentation>
+		</xsd:annotation>
+		<xsd:restriction base="xsd:string">
+			<xsd:enumeration value="QRY">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Query atom. Indicates that
+					the atom must not have any explicit element type, but must
+					have at least one annotation that is responsible for the
+					match evaluation.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="*">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Any atom wildcard. The
+					difference to "query" atom is that there is no need (though
+					still possible) to add any query annotations to "any" atom -
+					it will match always.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="A">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Any atom wildcard -
+					equivalent of "*".</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="R">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">C or H</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Q">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Any atom except C or H -
+					all hetero atoms</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="X">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Any halogen atom -
+					F, Cl, Br, I, and At</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Z">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Any typical organic hetero
+					atom - N, O, S, P</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="E">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Any non-metal - H, C, N, O,
+					F, P, S, Cl, Se, Br, I, At, and noble gases He, Ne, Ar, Kr,
+					Xe, Rn</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="M">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Any typical metal atom -
+					elements of groups 1 (except H) to 12, and any poor metals
+					Al, Ga, In, Tl, Sn, Pb, Bi, and Po.</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="G">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Any metalloids -B, Si, Ge,
+					As, Sb, and Te</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<!-- list of elements, see http://en.wikipedia.org/wiki/List_of_elements_by_atomic_number -->
+			<xsd:enumeration value="H">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 1 - 'Hydrogen', period 1, group 1, series 'Nonmetal', mass 1 1.00794(7) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="D">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en"> Atomic number 1 - 'Deuterium'	</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="T">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en"> Atomic number 1 - 'Tritium' </xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="He">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 2 - 'Helium', period 1, group 18, series 'Noble gas', mass 4 4.002602(2) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Li">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 3 - 'Lithium', period 2, group 1, series 'Alkali metal', mass 6 6.941(2) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Be">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 4 - 'Beryllium', period 2, group 2, series 'Alkaline earth metal', mass 9 9.012182(3) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="B">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 5 - 'Boron', period 2, group 13, series 'Metalloid', mass 10 10.811(7) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="C">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 6 - 'Carbon', period 2, group 14, series 'Nonmetal', mass 12 12.0107(8) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="N">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 7 - 'Nitrogen', period 2, group 15, series 'Nonmetal', mass 14 14.0067(2) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="O">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 8 - 'Oxygen', period 2, group 16, series 'Nonmetal', mass 15 15.9994(3) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="F">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 9 - 'Fluorine', period 2, group 17, series 'Halogen', mass 18 18.9984032(5) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Ne">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 10 - 'Neon', period 2, group 18, series 'Noble gas', mass 20 20.1797(6) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Na">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 11 - 'Sodium', period 3, group 1, series 'Alkali metal', mass 22 22.98976928(2) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Mg">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 12 - 'Magnesium', period 3, group 2, series 'Alkaline earth metal', mass 24 24.3050(6) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Al">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 13 - 'Aluminium', period 3, group 13, series 'Poor metal', mass 26 26.9815386(8) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Si">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 14 - 'Silicon', period 3, group 14, series 'Metalloid', mass 28 28.0855(3) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="P">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 15 - 'Phosphorus', period 3, group 15, series 'Nonmetal', mass 30 30.973762(2) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="S">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 16 - 'Sulfur', period 3, group 16, series 'Nonmetal', mass 32 32.065(5) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Cl">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 17 - 'Chlorine', period 3, group 17, series 'Halogen', mass 35 35.453(2) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Ar">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 18 - 'Argon', period 3, group 18, series 'Noble gas', mass 39 39.948(1) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="K">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 19 - 'Potassium', period 4, group 1, series 'Alkali metal', mass 39 39.0983(1) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Ca">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 20 - 'Calcium', period 4, group 2, series 'Alkaline earth metal', mass 40 40.078(4) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Sc">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 21 - 'Scandium', period 4, group 3, series 'Transition metal', mass 44 44.955912(6) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Ti">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 22 - 'Titanium', period 4, group 4, series 'Transition metal', mass 47 47.867(1) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="V">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 23 - 'Vanadium', period 4, group 5, series 'Transition metal', mass 50 50.9415(1) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Cr">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 24 - 'Chromium', period 4, group 6, series 'Transition metal', mass 51 51.9961(6) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Mn">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 25 - 'Manganese', period 4, group 7, series 'Transition metal', mass 54 54.938045(5) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Fe">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 26 - 'Iron', period 4, group 8, series 'Transition metal', mass 55 55.845(2) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Co">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 27 - 'Cobalt', period 4, group 9, series 'Transition metal', mass 58 58.933195(5) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Ni">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 28 - 'Nickel', period 4, group 10, series 'Transition metal', mass 58 58.6934(4) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Cu">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 29 - 'Copper', period 4, group 11, series 'Transition metal', mass 63 63.546(3) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Zn">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 30 - 'Zinc', period 4, group 12, series 'Transition metal', mass 65 65.38(2) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Ga">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 31 - 'Gallium', period 4, group 13, series 'Poor metal', mass 69 69.723(1) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Ge">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 32 - 'Germanium', period 4, group 14, series 'Metalloid', mass 72 72.64(1) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="As">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 33 - 'Arsenic', period 4, group 15, series 'Metalloid', mass 74 74.92160(2) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Se">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 34 - 'Selenium', period 4, group 16, series 'Nonmetal', mass 78 78.96(3) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Br">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 35 - 'Bromine', period 4, group 17, series 'Halogen', mass 79 79.904(1) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Kr">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 36 - 'Krypton', period 4, group 18, series 'Noble gas', mass 83 83.798(2) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Rb">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 37 - 'Rubidium', period 5, group 1, series 'Alkali metal', mass 85 85.4678(3) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Sr">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 38 - 'Strontium', period 5, group 2, series 'Alkaline earth metal', mass 87 87.62(1) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Y">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 39 - 'Yttrium', period 5, group 3, series 'Transition metal', mass 88 88.90585(2) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Zr">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 40 - 'Zirconium', period 5, group 4, series 'Transition metal', mass 91 91.224(2) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Nb">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 41 - 'Niobium', period 5, group 5, series 'Transition metal', mass 92 92.90638(2) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Mo">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 42 - 'Molybdenum', period 5, group 6, series 'Transition metal', mass 95 95.96(2) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Tc">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 43 - 'Technetium', period 5, group 7, series 'Transition metal', mass 98 [98.9063] g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Ru">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 44 - 'Ruthenium', period 5, group 8, series 'Transition metal', mass 101 101.07(2) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Rh">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 45 - 'Rhodium', period 5, group 9, series 'Transition metal', mass 102 102.90550(2) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Pd">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 46 - 'Palladium', period 5, group 10, series 'Transition metal', mass 106 106.42(1) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Ag">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 47 - 'Silver', period 5, group 11, series 'Transition metal', mass 107 107.8682(2) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Cd">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 48 - 'Cadmium', period 5, group 12, series 'Transition metal', mass 112 112.411(8) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="In">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 49 - 'Indium', period 5, group 13, series 'Poor metal', mass 114 114.818(3) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Sn">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 50 - 'Tin', period 5, group 14, series 'Poor metal', mass 118 118.710(7) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Sb">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 51 - 'Antimony', period 5, group 15, series 'Metalloid', mass 121 121.760(1) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Te">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 52 - 'Tellurium', period 5, group 16, series 'Metalloid', mass 127 127.60(3) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="I">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 53 - 'Iodine', period 5, group 17, series 'Halogen', mass 126 126.90447(3) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Xe">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 54 - 'Xenon', period 5, group 18, series 'Noble gas', mass 131 131.293(6) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Cs">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 55 - 'Caesium', period 6, group 1, series 'Alkali metal', mass 132 132.9054519(2) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Ba">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 56 - 'Barium', period 6, group 2, series 'Alkaline earth metal', mass 137 137.327(7) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="La">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 57 - 'Lanthanum', period 6, group , series 'Lanthanoid', mass 138 138.90547(7) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Ce">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 58 - 'Cerium', period 6, group , series 'Lanthanoid', mass 140 140.116(1) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Pr">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 59 - 'Praseodymium', period 6, group , series 'Lanthanoid', mass 140 140.90765(2) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Nd">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 60 - 'Neodymium', period 6, group , series 'Lanthanoid', mass 144 144.242(3) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Pm">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 61 - 'Promethium', period 6, group , series 'Lanthanoid', mass 146 [146.9151] g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Sm">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 62 - 'Samarium', period 6, group , series 'Lanthanoid', mass 150 150.36(2) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Eu">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 63 - 'Europium', period 6, group , series 'Lanthanoid', mass 151 151.964(1) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Gd">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 64 - 'Gadolinium', period 6, group , series 'Lanthanoid', mass 157 157.25(3) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Tb">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 65 - 'Terbium', period 6, group , series 'Lanthanoid', mass 158 158.92535(2) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Dy">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 66 - 'Dysprosium', period 6, group , series 'Lanthanoid', mass 162 162.500(1) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Ho">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 67 - 'Holmium', period 6, group , series 'Lanthanoid', mass 164 164.93032(2) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Er">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 68 - 'Erbium', period 6, group , series 'Lanthanoid', mass 167 167.259(3) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Tm">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 69 - 'Thulium', period 6, group , series 'Lanthanoid', mass 168 168.93421(2) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Yb">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 70 - 'Ytterbium', period 6, group , series 'Lanthanoid', mass 173 173.054(5) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Lu">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 71 - 'Lutetium', period 6, group 3, series 'Lanthanoid', mass 174 174.9668(1) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Hf">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 72 - 'Hafnium', period 6, group 4, series 'Transition metal', mass 178 178.49(2) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Ta">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 73 - 'Tantalum', period 6, group 5, series 'Transition metal', mass 180 180.9479(1) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="W">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 74 - 'Tungsten', period 6, group 6, series 'Transition metal', mass 183 183.84(1) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Re">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 75 - 'Rhenium', period 6, group 7, series 'Transition metal', mass 186 186.207(1) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Os">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 76 - 'Osmium', period 6, group 8, series 'Transition metal', mass 190 190.23(3) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Ir">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 77 - 'Iridium', period 6, group 9, series 'Transition metal', mass 192 192.217(3) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Pt">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 78 - 'Platinum', period 6, group 10, series 'Transition metal', mass 195 195.084(9) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Au">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 79 - 'Gold', period 6, group 11, series 'Transition metal', mass 196 196.966569(4) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Hg">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 80 - 'Mercury', period 6, group 12, series 'Transition metal', mass 200 200.59(2) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Tl">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 81 - 'Thallium', period 6, group 13, series 'Poor metal', mass 204 204.3833(2) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Pb">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 82 - 'Lead', period 6, group 14, series 'Poor metal', mass 207 207.2(1) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Bi">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 83 - 'Bismuth', period 6, group 15, series 'Poor metal', mass 208 208.98040(1) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Po">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 84 - 'Polonium', period 6, group 16, series 'Metalloid', mass 208 [208.9824] g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="At">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 85 - 'Astatine', period 6, group 17, series 'Halogen', mass 209 [209.9871] g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Rn">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 86 - 'Radon', period 6, group 18, series 'Noble gas', mass 222 [222.0176] g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Fr">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 87 - 'Francium', period 7, group 1, series 'Alkali metal', mass 223 [223.0197] g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Ra">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 88 - 'Radium', period 7, group 2, series 'Alkaline earth metal', mass 226 [226.0254] g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Ac">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 89 - 'Actinium', period 7, group , series 'Actinoid', mass 227 [227.0278] g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Th">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 90 - 'Thorium', period 7, group , series 'Actinoid', mass 232 232.03806(2) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Pa">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 91 - 'Protactinium', period 7, group , series 'Actinoid', mass 231 231.03588(2) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="U">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 92 - 'Uranium', period 7, group , series 'Actinoid', mass 238 238.02891(3) g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Np">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 93 - 'Neptunium', period 7, group , series 'Actinoid', mass 237 [237.0482] g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Pu">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 94 - 'Plutonium', period 7, group , series 'Actinoid', mass 244 [244.0642] g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Am">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 95 - 'Americium', period 7, group , series 'Actinoid', mass 243 [243.0614] g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Cm">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 96 - 'Curium', period 7, group , series 'Actinoid', mass 247 [247.0704] g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Bk">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 97 - 'Berkelium', period 7, group , series 'Actinoid', mass 247 [247.0703] g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Cf">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 98 - 'Californium', period 7, group , series 'Actinoid', mass 251 [251.0796] g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Es">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 99 - 'Einsteinium', period 7, group , series 'Actinoid', mass 252 [252.0829] g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Fm">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 100 - 'Fermium', period 7, group , series 'Actinoid', mass 257 [257.0951] g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Md">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 101 - 'Mendelevium', period 7, group , series 'Actinoid', mass 258 [258.0986] g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="No">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 102 - 'Nobelium', period 7, group , series 'Actinoid', mass 259 [259.1009] g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Lr">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 103 - 'Lawrencium', period 7, group 3, series 'Actinoid', mass 260 [264] g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Rf">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 104 - 'Rutherfordium', period 7, group 4, series 'Transition metal', mass 261 [265] g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Db">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 105 - 'Dubnium', period 7, group 5, series 'Transition metal', mass 262 [268] g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Sg">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 106 - 'Seaborgium', period 7, group 6, series 'Transition metal', mass 263 [272] g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Bh">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 107 - 'Bohrium', period 7, group 7, series 'Transition metal', mass 262 [273] g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Hs">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 108 - 'Hassium', period 7, group 8, series 'Transition metal', mass 265 [276] g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Mt">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 109 - 'Meitnerium', period 7, group 9, series 'Transition metal', mass 266 [279] g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Ds">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 110 - 'Darmstadtium', period 7, group 10, series 'Transition metal', mass 269 [278] g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Rg">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 111 - 'Roentgenium', period 7, group 11, series 'Transition metal', mass 272 [283] g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+			<xsd:enumeration value="Cn">
+				<xsd:annotation>
+					<xsd:documentation xml:lang="en">Atomic number 112 - 'Copernicium', period 7, group 12, series 'Transition metal', mass 285 [285] g/mol</xsd:documentation>
+				</xsd:annotation>
+			</xsd:enumeration>
+		</xsd:restriction>
+	</xsd:simpleType>
+</xsd:schema>
