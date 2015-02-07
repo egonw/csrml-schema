@@ -3,9 +3,9 @@ This is *not* the primary source of this schema.
 
 The CSRML schema was developed by Molecular Networks GmbH and made available on https://chemotyper.org/:
 
-    Both the XML Schema Definition of CSRML, and the source code of the CSRML reference implementation
-    are released under the ​GNU Lesser General Public License Version 2.1 and can be downloaded
-    free-of-charge.
+    Both the XML Schema Definition of CSRML, and the source code of the
+    CSRML reference implementation are released under the GNU Lesser
+    General Public License Version 2.1 and can be downloaded free-of-charge.
 
 The XML Schema has a richer copyright statement and rhe CSRML paper was published in 2015:
 
